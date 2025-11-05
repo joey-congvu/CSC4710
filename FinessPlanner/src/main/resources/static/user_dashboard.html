@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>User Dashboard - Fitness Planner</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    /* ==== Dev: set your page background here ==== */
+    :root{
+      --bg-image: url("/img/background.jpg"); /* change me */
+      --bg-base:#0b1220; --panel:#0f172a; --muted:#94a3b8; --text:#e2e8f0;
+      --accent:#3b82f6; --accent-2:#22c55e; --danger:#ef4444;
+      --border:rgba(148,163,184,.16); --chip:#1e293b;
+      --glass: rgba(2,6,23,.55);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial; color:var(--text);
+background:
+  var(--bg-image) center/cover no-repeat fixed,
+  var(--bg-base);
+
+    }
+
+    header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 20px;border-bottom:1px solid var(--border);
+      background:var(--glass); backdrop-filter: blur(6px);
+      position:sticky;top:0;z-index:100; box-shadow:0 6px 20px rgba(0,0,0,.25);
+    }
+    header h1{margin:0;font-size:18px;letter-spacing:.3px}
+
+    .pill{padding:6px 10px;border-radius:999px;background:#0b3b70;color:#cfe1ff;border:1px solid #1d4ed8;}
+    .logout{background:var(--danger);color:#fff;border:none;border-radius:10px;padding:8px 14px;cursor:pointer}
+
+    .wrap{max-width:1200px;margin:26px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:310px 1fr 420px;gap:18px}
+
+    .card{
+      background:linear-gradient(180deg, rgba(15,23,42,.96), rgba(9,15,28,.98));
+      border:1px solid var(--border); border-radius:16px; padding:16px; position:relative; overflow:visible;
+      box-shadow:0 18px 40px rgba(0,0,0,.35);
+    }
+    h2{margin:0 0 10px;font-size:16px; letter-spacing:.2px}
+    .row{display:flex;justify-content:space-between;margin:8px 0}
+
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .kpi .box{
+      background:#0b1328;border:1px solid var(--border);border-radius:12px;padding:10px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+    }
+    .kpi .title{color:var(--muted);font-size:12px}
+    .kpi .num{font-weight:800;font-size:20px}
+
+    .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+    .chip{display:inline-block;background:var(--chip);border:1px solid var(--border);padding:2px 8px;border-radius:999px;font-size:12px;color:#cbd5e1}
+
+    .btn{border:none;border-radius:10px;padding:10px 14px;cursor:pointer;transition:transform .04s ease}
+    .btn:active{transform:translateY(1px)}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-green{background:var(--accent-2);color:#052e16}
+    .btn-outline{background:transparent;color:#cfe1ff;border:1px solid #60a5fa}
+    .full{width:100%}
+
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:10px 8px;border-bottom:1px dashed var(--border);text-align:left}
+    th{color:var(--muted);font-weight:600;font-size:12px}
+    td.small{color:var(--muted);font-size:13px}
+
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,10,20,.65);z-index:9999}
+    .modal .panel{
+      background:linear-gradient(180deg, rgba(15,23,42,.98), rgba(12,20,36,.98));
+      border:1px solid var(--border);border-radius:14px;padding:16px;width:min(520px,92vw);max-height:80vh;overflow:auto;
+      box-shadow:0 18px 50px rgba(0,0,0,.5)
+    }
+    .modal .actions{display:flex;gap:10px;margin-top:12px;justify-content:flex-end}
+    label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
+    input,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#0b1328;color:var(--text);appearance:auto}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+    @media (max-width:1100px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fitness & Nutrition Planner</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="userBadge" class="pill">User</span>
+      <button class="logout" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <!-- Left: Profile & Plan -->
+      <section class="card">
+        <h2>Profile</h2>
+        <div class="row"><span class="small">Name</span><strong id="name">—</strong></div>
+        <div class="row"><span class="small">Email</span><strong id="email">—</strong></div>
+        <div class="row"><span class="small">Height</span><strong id="height">—</strong></div>
+        <div class="row"><span class="small">Weight</span><strong id="weight">—</strong></div>
+        <div class="row"><span class="small">BMI</span><strong id="bmi">—</strong></div>
+
+        <div style="margin-top:14px;">
+          <h2 style="margin-bottom:6px">Plan</h2>
+          <div class="row"><span class="small">Goal</span><span id="goal" class="chip">—</span></div>
+          <div class="row"><span class="small">Started</span><strong id="startDate">—</strong></div>
+          <div class="row"><span class="small">Target kcal</span><strong id="planKcal">—</strong></div>
+          <div class="row"><span class="small">Protein</span><strong id="planPro">—</strong></div>
+          <div class="row"><span class="small">Carbs</span><strong id="planCarb">—</strong></div>
+          <div class="row"><span class="small">Fat</span><strong id="planFat">—</strong></div>
+          <button id="editPlanBtn" class="btn btn-outline full" style="margin-top:8px">Create/Update Plan</button>
+        </div>
+      </section>
+
+      <!-- Middle: Actions + Entries -->
+      <section class="card">
+        <h2>Quick Actions</h2>
+        <div style="display:flex;gap:10px;margin-bottom:6px">
+          <button class="btn btn-green"  onclick="openMeal()">Log Meal</button>
+          <button class="btn btn-primary" onclick="openWorkout()">Log Workout</button>
+        </div>
+
+        <div style="margin-top:14px">
+          <h2>Today’s Entries</h2>
+          <div style="margin-top:8px">
+            <div class="small" style="margin-bottom:6px;color:#cbd5e1">Meals (gain)</div>
+            <!-- NEW: Clear All button for Meals -->
+            <div style="text-align:right;margin-bottom:6px;">
+              <button class="btn btn-outline" style="padding:6px 10px;font-size:12px" onclick="clearTodayMeals()">🗑 Clear All</button>
+            </div>
+
+            <table id="mealTable">
+              <thead><tr><th>Name</th><th style="width:140px">Calories</th></tr></thead>
+              <tbody><tr><td class="small">No items yet</td><td></td></tr></tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px">
+            <div class="small" style="margin-bottom:6px;color:#cbd5e1">Workouts (burn)</div>
+            <table id="workoutTable">
+              <div style="text-align:right;margin-bottom:6px;">
+              <button class="btn btn-outline" style="padding:6px 10px;font-size:12px" onclick="clearTodayMeals()">🗑 Clear All</button>
+            </div>
+              <thead><tr><th>Name</th><th style="width:140px">Calories</th></tr></thead>
+              <tbody><tr><td class="small">No items yet</td><td></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: KPI -->
+      <section class="card">
+        <h2>Today’s Calories</h2>
+        <div class="kpi">
+          <div class="box"><div class="title">Target</div><div id="k_target" class="num">—</div></div>
+          <div class="box"><div class="title">Consumed</div><div id="k_consumed" class="num">—</div></div>
+          <div class="box"><div class="title">Burned</div><div id="k_burned" class="num">—</div></div>
+          <div class="box"><div class="title">Remaining</div><div id="k_net" class="num">—</div></div>
+        </div>
+        <div class="kgrid">
+          <div><div class="title">Protein (g)</div><div id="k_p">—</div></div>
+          <div><div class="title">Carbs (g)</div><div id="k_c">—</div></div>
+          <div><div class="title">Fat (g)</div><div id="k_f">—</div></div>
+          <div><div class="title">Plan kcal</div><div id="k_plan">—</div></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Meal Modal -->
+  <div id="mealModal" class="modal">
+    <div class="panel">
+      <h2>Log Meal</h2>
+      <div class="two">
+        <div>
+          <label>Meal Type</label>
+          <select id="mealType">
+            <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option>
+          </select>
+        </div>
+        <div>
+          <label>Food</label>
+          <select id="foodSelect"><option>Loading…</option></select>
+        </div>
+      </div>
+      <div class="two">
+        <div><label>Quantity (units)</label><input id="foodQty" type="number" min="0" step="0.1" value="1" /></div>
+        <div><label>&nbsp;</label><div class="small"></div></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" onclick="closeMeal()">Cancel</button>
+        <button class="btn btn-green" onclick="saveMeal()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workout Modal -->
+  <div id="workoutModal" class="modal">
+    <div class="panel">
+      <h2>Log Workout</h2>
+      <div class="two">
+        <div><label>Duration (min)</label><input id="durationMin" type="number" min="0" step="1" value="30" /></div>
+        <div><label>Notes</label><input id="notes" placeholder="optional" /></div>
+      </div>
+      <div class="two">
+        <div><label>Exercise</label><select id="exerciseSelect"><option>Loading…</option></select></div>
+        <div><label>Sets (optional)</label><input id="sets" type="number" min="0" step="1" /></div>
+      </div>
+      <div class="two">
+        <div><label>Reps (optional)</label><input id="reps" type="number" min="0" step="1" /></div>
+        <div><label>Seconds per set (optional)</label><input id="secs" type="number" min="0" step="1" /></div>
+      </div>
+      <div><label>Load (kg, optional)</label><input id="load" type="number" min="0" step="0.5" /></div>
+      <div class="actions">
+        <button class="btn btn-outline" onclick="closeWorkout()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveWorkout()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Session ---
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!user) location.href = '/login.html';
+   document.getElementById('userBadge').textContent = `Hi, ${user.name || 'User'}`;
+
+    const PLAN_URL          = uid => `/api/plan/user/${uid}`;
+    const SUMMARY_URL       = uid => `/api/summary/today/${uid}`;
+    const MEAL_TODAY_URL    = uid => `/api/meal_item/today/${uid}`;
+    const WORKOUT_TODAY_URL = uid => `/api/workout_detail/today/${uid}`;
+
+    const fmt = n => Number(n ?? 0).toFixed(0);
+    const fmtDate = s => { const d=new Date(s); return isNaN(d)?'—':d.toLocaleDateString(); };
+    const titleCase = s => String(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+
+    function logout(){ localStorage.removeItem('user'); location.href='/login.html'; }
+
+    async function fetchJsonWithFallback(urls){
+      for (const url of urls){
+        try{ const r = await fetch(url,{cache:'no-store'}); if (r.ok) return await r.json(); }catch{}
+      }
+      return [];
+    }
+
+    // ----- Profile -----
+    async function loadUser(){
+      try{
+        const r = await fetch(`/api/user/${user.userId}`,{cache:'no-store'});
+        const d = r.ok ? await r.json() : user;
+        document.getElementById('name').textContent = d.name ?? '—';
+        document.getElementById('email').textContent = d.email ?? '—';
+        document.getElementById('height').textContent = d.heightCm ? `${d.heightCm} cm` : '—';
+        document.getElementById('weight').textContent = d.weightKg ? `${d.weightKg} kg` : '—';
+        if (d.heightCm && d.weightKg){
+          document.getElementById('bmi').textContent = (d.weightKg / Math.pow(d.heightCm/100,2)).toFixed(1);
+        }
+      }catch(e){ console.error(e); }
+    }
+
+    function normalizePlanList(list){
+      if (!Array.isArray(list) || list.length===0) return null;
+      const map = x => ({
+        id: x.planId ?? x.plan_id ?? x.id,
+        goal: x.goalType ?? x.goal_type ?? x.goal,
+        kcal: x.dailyCalorieTarget ?? x.daily_calorie_target ?? x.calories,
+        pro: x.proteinGTarget ?? x.protein_g_target ?? x.protein,
+        carb: x.carbGTarget ?? x.carb_g_target ?? x.carbs,
+        fat: x.fatGTarget ?? x.fat_g_target ?? x.fat,
+        start: x.startDate ?? x.start_date
+      });
+      const sorted = [...list].sort((a,b)=>(b.planId??0)-(a.planId??0));
+      return map(sorted[0]);
+    }
+
+    async function loadPlan(){
+      try{
+        const r = await fetch(PLAN_URL(user.userId),{cache:'no-store'});
+        if (!r.ok) return;
+        const plan = normalizePlanList(await r.json());
+        if (!plan) return;
+        document.getElementById('goal').textContent = titleCase(plan.goal||'Plan');
+        document.getElementById('startDate').textContent = plan.start ? fmtDate(plan.start) : '—';
+        document.getElementById('planKcal').textContent = plan.kcal ?? '—';
+        document.getElementById('planPro').textContent = plan.pro ?? '—';
+        document.getElementById('planCarb').textContent = plan.carb ?? '—';
+        document.getElementById('planFat').textContent = plan.fat ?? '—';
+        document.getElementById('k_plan').textContent = plan.kcal ?? '—';
+
+        const btn = document.getElementById('editPlanBtn');
+        const qs = new URLSearchParams({ userId: user.userId });
+        if (plan.id) qs.set('planId', plan.id);
+        btn.onclick = () => location.href = `/create_plan.html?${qs.toString()}`;
+      }catch(e){ console.error(e); }
+    }
+
+    // ----- KPI Summary -----
+    async function loadSummary(){
+      try{
+        const r = await fetch(SUMMARY_URL(user.userId),{cache:'no-store'});
+        if (!r.ok) return;
+        const d = await r.json();
+        document.getElementById('k_target').textContent   = fmt(d.targetCalories);
+        document.getElementById('k_consumed').textContent = fmt(d.consumedCalories);
+        document.getElementById('k_burned').textContent   = fmt(d.burnedCalories);
+        document.getElementById('k_net').textContent      = fmt(d.netRemainingCalories);
+        document.getElementById('k_p').textContent        = `${fmt(d.consumedProtein)} / ${fmt(d.targetProtein)}`;
+        document.getElementById('k_c').textContent        = `${fmt(d.consumedCarb)} / ${fmt(d.targetCarb)}`;
+        document.getElementById('k_f').textContent        = `${fmt(d.consumedFat)} / ${fmt(d.targetFat)}`;
+      }catch(e){ console.error(e); }
+    }
+
+    // ----- Today tables -----
+    async function loadTodayEntries(){
+      try{
+        const r = await fetch(MEAL_TODAY_URL(user.userId),{cache:'no-store'});
+        const rows = r.ok ? await r.json() : [];
+        const tb = document.querySelector('#mealTable tbody');
+        tb.innerHTML = rows.length ? rows.map(a=>{
+          const name = a.name ?? a[0]; const cal = a.calories ?? a.kcal ?? a[1];
+          return `<tr><td>${name}</td><td>${fmt(cal)} kcal</td></tr>`;
+        }).join('') : `<tr><td class="small">No items yet</td><td></td></tr>`;
+      }catch(e){ console.error(e); }
+
+      try{
+        const r = await fetch(WORKOUT_TODAY_URL(user.userId),{cache:'no-store'});
+        const rows = r.ok ? await r.json() : [];
+        const tb = document.querySelector('#workoutTable tbody');
+        tb.innerHTML = rows.length ? rows.map(a=>{
+          const name = a.name ?? a[0]; const cal = a.calories ?? a.kcal ?? a[1];
+          return `<tr><td>${name}</td><td>-${fmt(cal)} kcal</td></tr>`;
+        }).join('') : `<tr><td class="small">No items yet</td><td></td></tr>`;
+      }catch(e){ console.error(e); }
+    }
+
+    // ----- Food/Exercise options -----
+    async function loadFoods(){
+      const data = await fetchJsonWithFallback(['/api/food','/api/food/all']);
+      const foods = data.map(f=>({ id:f.foodId??f.food_id??f.id, name:f.name??f.foodName??f.food_name,
+                                   cal:f.caloriesPerUnit??f.calories_per_unit??f.calories??0 }))
+                        .filter(x=>x.id&&x.name);
+      const sel = document.getElementById('foodSelect');
+      sel.innerHTML = foods.length ? foods.map(f=>`<option value="${f.id}">${f.name} (${fmt(f.cal)} kcal/u)</option>`).join('')
+                                   : `<option value="">(No foods found)</option>`;
+    }
+    async function loadExercises(){
+      const data = await fetchJsonWithFallback(['/api/exercise','/api/exercise/all']);
+      const exs = data.map(e=>({ id:e.exerciseId??e.exercise_id??e.id, name:e.name,
+                                 met:e.metValue??e.met_value??0 })).filter(x=>x.id&&x.name);
+      const sel = document.getElementById('exerciseSelect');
+      sel.innerHTML = exs.length ? exs.map(e=>`<option value="${e.id}">${e.name} (MET ${Number(e.met).toFixed(1)})</option>`).join('')
+                                 : `<option value="">(No exercises found)</option>`;
+    }
+
+    // ----- Modals -----
+    function openMeal(){ document.getElementById('mealModal').style.display='flex'; loadFoods(); }
+    function closeMeal(){ document.getElementById('mealModal').style.display='none'; }
+    function openWorkout(){ document.getElementById('workoutModal').style.display='flex'; loadExercises(); }
+    function closeWorkout(){ document.getElementById('workoutModal').style.display='none'; }
+
+    // ----- Save actions -----
+    async function saveMeal(){
+      const mealType = document.getElementById('mealType').value;
+      const foodId = Number(document.getElementById('foodSelect').value);
+      const qty = Number(document.getElementById('foodQty').value || 0);
+      if (!foodId || qty<=0) return alert('Choose a food and quantity > 0');
+
+      const mealRes = await fetch(`/api/meal/create?userId=${user.userId}&mealType=${encodeURIComponent(mealType)}`,{method:'POST'});
+      if (!mealRes.ok) return alert('Failed to create meal');
+      const meal = await mealRes.json();
+      const mealId = meal.mealId ?? meal.meal_id;
+
+      const addRes = await fetch(`/api/meal_item/add?mealId=${mealId}&foodId=${foodId}&quantity=${qty}`,{method:'POST'});
+      if (!addRes.ok) return alert('Failed to add food');
+
+      closeMeal();
+      await Promise.all([loadSummary(), loadTodayEntries()]);
+    }
+
+    async function saveWorkout(){
+      const durationMin = Number(document.getElementById('durationMin').value || 0);
+      const notes = document.getElementById('notes').value || '';
+
+      const wRes = await fetch(`/api/workout/create?userId=${user.userId}&durationMin=${encodeURIComponent(durationMin)}&notes=${encodeURIComponent(notes)}`,{method:'POST'});
+      if (!wRes.ok){ alert('Failed to create workout'); return; }
+      const w = await wRes.json();
+      const workoutId = w.workoutId ?? w.workout_id;
+
+      const exerciseId = Number(document.getElementById('exerciseSelect').value);
+      const sets = document.getElementById('sets').value || '';
+      const reps = document.getElementById('reps').value || '';
+      const secs = document.getElementById('secs').value || '';
+      const load = document.getElementById('load').value || '';
+      if (!exerciseId) return alert('Choose an exercise');
+
+      const qs = new URLSearchParams({ workoutId, exerciseId });
+      if (sets) qs.set('sets', sets);
+      if (reps) qs.set('reps', reps);
+      if (secs) qs.set('secondsPerSet', secs);
+      if (load) qs.set('loadKg', load);
+
+      const dRes = await fetch(`/api/workout_detail/add?${qs.toString()}`,{method:'POST'});
+      if (!dRes.ok){ alert('Failed to add workout detail'); return; }
+
+      closeWorkout();
+      await Promise.all([loadSummary(), loadTodayEntries()]);
+    }
+
+    // ----- NEW: Clear today's meals -----
+    async function clearTodayMeals(){
+      if (!confirm("Delete all meals logged today?")) return;
+      try{
+        const res = await fetch(`/api/meal_item/today/${user.userId}`, { method: 'DELETE' });
+        if (res.ok){
+          await Promise.all([loadTodayEntries(), loadSummary()]);
+          alert('✅ Cleared today\'s meals');
+        } else {
+          alert('Delete failed');
+        }
+      }catch(e){
+        console.error(e);
+        alert('Delete failed');
+      }
+    }
+
+    // init
+    (async function init(){
+      await loadUser();
+      await loadPlan();
+      await loadSummary();
+      await loadTodayEntries();
+    })();
+    
+  </script>
+</body>
+</html>

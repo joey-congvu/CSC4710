@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Account • Fitness Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* ===== Customize background here (dev-only) ===== */
+    :root{
+      --bg-image: url("https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2000&auto=format&fit=crop");
+      --ink:#0b1220; --panel:#0f172a; --text:#e2e8f0; --muted:#94a3b8;
+      --brand:#22c55e; --brand-2:#3b82f6; --danger:#ef4444; --border:rgba(148,163,184,.22);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial;
+      background:
+        linear-gradient( to bottom, rgba(2,6,23,.55), rgba(2,6,23,.9) 60%, rgba(2,6,23,.96) ),
+        var(--bg-image) center/cover no-repeat fixed;
+      color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+
+    .shell{
+      width:min(960px, 98vw);
+      display:grid; grid-template-columns: 1.05fr .95fr; gap:22px; align-items:stretch;
+    }
+    @media (max-width:920px){ .shell{grid-template-columns:1fr} }
+
+    .brand{
+      border:1px solid var(--border); border-radius:20px;
+      background:linear-gradient(180deg, rgba(15,23,42,.78), rgba(9,15,28,.95));
+      padding:26px 24px; box-shadow:0 18px 50px rgba(0,0,0,.35); backdrop-filter: blur(3px);
+      display:flex; flex-direction:column; justify-content:center;
+    }
+    .brand h1{margin:0 0 10px; font-size:1.6rem}
+    .tag{color:var(--muted); line-height:1.6; margin:0}
+    .badges{margin-top:14px; display:flex; gap:10px; flex-wrap:wrap}
+    .chip{background:#0b1530; border:1px solid var(--border); padding:6px 10px; border-radius:999px; font-size:.9rem; color:#cfe1ff}
+
+    .card{
+      border:1px solid var(--border); border-radius:20px;
+      background:linear-gradient(180deg, rgba(15,23,42,.95), rgba(10,18,36,.98));
+      padding:22px; box-shadow:0 18px 50px rgba(0,0,0,.35);
+      display:flex; flex-direction:column; gap:10px; min-width:320px;
+    }
+    h2{margin:4px 0 12px; font-size:1.25rem}
+    label{display:block; color:#cbd5e1; font-size:.95rem; margin:8px 0 6px}
+    input{
+      width:100%; padding:12px; border-radius:12px; outline:none;
+      border:1px solid var(--border); background:#081326; color:var(--text);
+    }
+    input:focus{box-shadow:0 0 0 2px rgba(34,197,94,.35)}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    @media (max-width:520px){ .row{grid-template-columns:1fr} }
+    .subrow{display:flex; justify-content:space-between; align-items:center; margin-top:4px}
+    .toggle{display:flex; align-items:center; gap:6px; color:#cbd5e1; font-size:.9rem; user-select:none}
+
+    .btn{
+      width:100%; padding:12px 16px; border:0; border-radius:12px; cursor:pointer;
+      font-weight:700; letter-spacing:.25px; transition:transform .04s ease;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn-primary{background:var(--brand); color:#052e16}
+    .btn-ghost{background:transparent; border:1px solid var(--border); color:#cfe1ff}
+
+    .msg{color:#86efac; min-height:1.2em; font-weight:600}
+    .err{color:var(--danger); min-height:1.2em; font-weight:600}
+    .muted{color:var(--muted); font-size:.92rem}
+    .link{color:#cfe1ff; text-decoration:none}
+
+    footer{position:fixed; bottom:10px; left:0; right:0; text-align:center; color:var(--muted); font-size:.9rem}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <!-- Left: brand blurb -->
+    <section class="brand">
+      <h1>Create your account</h1>
+      <p class="tag">Set up your profile and we’ll calculate daily calorie and macro targets based on your plan.  
+        Track meals, log workouts, and watch your dashboard update “Consumed,” “Burned,” and “Net Remaining.”</p>
+      <div class="badges">
+        <span class="chip">Macro-aware</span>
+        <span class="chip">Workout logging</span>
+        <span class="chip">Simple & fast</span>
+      </div>
+    </section>
+
+    <!-- Right: form -->
+    <section class="card">
+      <h2>Sign up</h2>
+      <form id="registerForm" novalidate>
+        <label>Full Name</label>
+        <input id="name" placeholder="Your name" required />
+
+        <label>Email</label>
+        <input id="email" type="email" placeholder="you@example.com" required />
+
+        <label>Password</label>
+        <input id="password" type="password" placeholder="Create a password" required />
+        <div class="subrow">
+          <label class="toggle">
+            <input id="showPw" type="checkbox" />
+            <span>Show password</span>
+          </label>
+          <span id="pwHint" class="muted">Min 6 characters recommended</span>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Height (cm)</label>
+            <input id="height" type="number" step="0.1" placeholder="e.g., 170" required />
+          </div>
+          <div>
+            <label>Weight (kg)</label>
+            <input id="weight" type="number" step="0.1" placeholder="e.g., 70" required />
+          </div>
+        </div>
+
+        <button class="btn btn-primary" type="submit" style="margin-top:10px">Create Account</button>
+        <div id="msg" class="msg"></div>
+        <div id="err" class="err"></div>
+      </form>
+
+      <div class="subrow">
+        <span class="muted">Already have an account?</span>
+        <a class="link" href="/login.html">Log in</a>
+      </div>
+    </section>
+  </div>
+
+  <footer>© <span id="yr"></span> Fitness & Nutrition Planner</footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // Show / hide password
+    document.getElementById('showPw').addEventListener('change', (e) => {
+      document.getElementById('password').type = e.target.checked ? 'text' : 'password';
+    });
+
+    const form = document.getElementById('registerForm');
+    const msg = document.getElementById('msg');
+    const err = document.getElementById('err');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      err.textContent = '';
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const height = parseFloat(document.getElementById('height').value);
+      const weight = parseFloat(document.getElementById('weight').value);
+
+      if (!name || !email || !password || !height || !weight) {
+        err.textContent = 'Please fill out all fields.';
+        return;
+      }
+      if (password.length < 6) {
+        err.textContent = 'Password should be at least 6 characters.';
+        return;
+      }
+      if (height <= 0 || weight <= 0) {
+        err.textContent = 'Height and weight must be positive.';
+        return;
+      }
+
+      const payload = { name, email, password, heightCm: height, weightKg: weight };
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          msg.textContent = 'Account created successfully! Redirecting to login…';
+          setTimeout(() => window.location.href = '/login.html', 1200);
+        } else {
+          const text = await res.text();
+          err.textContent = text || 'Registration failed.';
+        }
+      } catch (e) {
+        console.error(e);
+        err.textContent = 'Network error — please try again.';
+      }
+    });
+  </script>
+</body>
+</html>

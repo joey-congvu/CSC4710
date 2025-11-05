@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Workout Test</title>
+<style>
+  body { font-family: monospace; margin: 32px; }
+  h1 { color: steelblue; }
+  input, select, button { padding: 6px 10px; margin: 4px; font-family: monospace; }
+  fieldset { margin-top: 16px; }
+  table { border-collapse: collapse; margin-top: 12px; width: 640px; }
+  th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+  th { background: #eef6ff; }
+</style>
+</head>
+<body>
+  <h1>🏋️ Workout Logger (DB schema: MET + sets/reps/seconds)</h1>
+
+  <label>User ID:</label>
+  <input id="userId" type="number" placeholder="enter user id" />
+
+  <fieldset>
+    <legend>Create Today's Workout</legend>
+    <label>Duration (min):</label>
+    <input id="durationMin" type="number" min="0" step="1" />
+    <label>Notes:</label>
+    <input id="notes" type="text" size="40" placeholder="optional" />
+    <button onclick="createWorkout()">Create</button>
+    <br/>
+    <label>Workout ID:</label>
+    <input id="workoutId" type="number" placeholder="auto after create" />
+  </fieldset>
+
+  <fieldset>
+    <legend>Add Exercise (from table)</legend>
+    <label>Exercise:</label>
+    <select id="exerciseSelect"></select>
+    <label>Sets:</label>
+    <input id="sets" type="number" min="0" step="1" value="3" />
+    <label>Reps:</label>
+    <input id="reps" type="number" min="0" step="1" value="10" />
+    <label>Sec/Set:</label>
+    <input id="secondsPerSet" type="number" min="0" step="1" value="30" />
+    <label>Load (kg):</label>
+    <input id="loadKg" type="number" min="0" step="0.5" value="0" />
+    <button onclick="addExercise()">Add</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Today Summary</legend>
+    <button onclick="getSummary()">Get Combined Summary</button>
+    <div id="summary"></div>
+  </fieldset>
+
+<script>
+  const EX_URL  = "http://localhost:8080/api/exercise";
+  const W_URL   = "http://localhost:8080/api/workout";
+  const WD_URL  = "http://localhost:8080/api/workout_detail";
+  const SUM_URL = "http://localhost:8080/api/summary";
+
+  // Load exercises from DB table (user can only pick these)
+  async function loadExercises() {
+    try {
+      const res = await fetch(`${EX_URL}/all`);
+      const list = await res.json();
+      const sel = document.getElementById("exerciseSelect");
+      sel.innerHTML = list.map(e =>
+        `<option value="${e.exerciseId}">${e.name} (MET ${e.metValue ?? "?"})</option>`
+      ).join("");
+    } catch (e) {
+      alert("Failed to load exercises"); console.error(e);
+    }
+  }
+  loadExercises();
+
+  async function createWorkout() {
+    const uid = document.getElementById("userId").value;
+    if (!uid) return alert("Enter userId first.");
+
+    const dur = document.getElementById("durationMin").value || "";
+    const notes = document.getElementById("notes").value || "";
+    const url = `${W_URL}/create?userId=${uid}&durationMin=${encodeURIComponent(dur)}&notes=${encodeURIComponent(notes)}`;
+
+    try {
+      const res = await fetch(url, { method: "POST" });
+      if (!res.ok) { alert("Create failed"); console.log(await res.text()); return; }
+      const w = await res.json();
+      document.getElementById("workoutId").value = w.workoutId;
+      alert(`✅ Workout created (ID: ${w.workoutId})`);
+    } catch (e) {
+      alert("Error creating workout"); console.error(e);
+    }
+  }
+
+  async function addExercise() {
+    const wid = document.getElementById("workoutId").value;
+    if (!wid) return alert("Enter Workout ID (or create one first).");
+
+    const ex  = document.getElementById("exerciseSelect").value;
+    const sets = document.getElementById("sets").value || 0;
+    const reps = document.getElementById("reps").value || 0;
+    const sec  = document.getElementById("secondsPerSet").value || 0;
+    const load = document.getElementById("loadKg").value || 0;
+
+    const url = `${WD_URL}/add?workoutId=${wid}&exerciseId=${ex}&sets=${sets}&reps=${reps}&secondsPerSet=${sec}&loadKg=${load}`;
+
+    try {
+      const res = await fetch(url, { method: "POST" });
+      if (!res.ok) { alert("Add exercise failed"); console.log(await res.text()); return; }
+      const d = await res.json();
+      alert(`✅ Added exercise ${d.exerciseId}: ${d.sets}×${d.reps}, ${d.secondsPerSet}s/set, load ${d.loadKg}kg`);
+    } catch (e) {
+      alert("Error adding exercise"); console.error(e);
+    }
+  }
+
+  async function getSummary() {
+    const uid = document.getElementById("userId").value;
+    if (!uid) return alert("Enter userId first.");
+
+    try {
+      const res = await fetch(`${SUM_URL}/today/${uid}`);
+      if (!res.ok) { alert("Failed to fetch summary"); console.log(await res.text()); return; }
+      const s = await res.json();
+      renderSummary(s);
+    } catch (e) {
+      alert("Error fetching summary"); console.error(e);
+    }
+  }
+
+  function renderSummary(s) {
+    document.getElementById("summary").innerHTML = `
+      <table>
+        <tr><th colspan="2">Calories (Today)</th></tr>
+        <tr><td>Target</td><td>${fmt(s.targetCalories)}</td></tr>
+        <tr><td>Consumed</td><td>${fmt(s.consumedCalories)}</td></tr>
+        <tr><td>Burned</td><td>${fmt(s.burnedCalories)}</td></tr>
+        <tr><td><b>Net Remaining</b></td><td><b>${fmt(s.netRemainingCalories)}</b></td></tr>
+      </table>
+      <table>
+        <tr><th colspan="3">Macros (g)</th></tr>
+        <tr><th>Macro</th><th>Consumed</th><th>Target</th></tr>
+        <tr><td>Protein</td><td>${fmt(s.consumedProtein)}</td><td>${fmt(s.targetProtein)}</td></tr>
+        <tr><td>Carbs</td><td>${fmt(s.consumedCarb)}</td><td>${fmt(s.targetCarb)}</td></tr>
+        <tr><td>Fat</td><td>${fmt(s.consumedFat)}</td><td>${fmt(s.targetFat)}</td></tr>
+      </table>
+    `;
+  }
+  const fmt = x => (x == null ? "-" : (+x).toFixed(1));
+</script>
+</body>
+</html>

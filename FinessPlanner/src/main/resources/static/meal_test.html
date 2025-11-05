@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Meal Logging Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #f7f7f7;
+      margin: 40px;
+    }
+    h1 { color: steelblue; }
+    input, select, button {
+      padding: 6px 10px;
+      margin: 4px;
+      font-family: monospace;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 15px;
+      width: 500px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+    th {
+      background: #e0f0ff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍽️ Meal Logging Test</h1>
+
+  <label>User ID: </label>
+  <input type="number" id="userId" placeholder="Enter user id" />
+  <br>
+
+  <label>Meal Type: </label>
+  <select id="mealType">
+    <option value="Breakfast">Breakfast</option>
+    <option value="Lunch">Lunch</option>
+    <option value="Dinner">Dinner</option>
+    <option value="Snack">Snack</option>
+  </select>
+  <button onclick="createMeal()">Create Meal</button>
+
+  <hr>
+  <div>
+    <h3>Add Food to a Meal</h3>
+    <label>Meal ID:</label>
+    <input type="number" id="mealId" placeholder="Enter meal ID" />
+    <label>Food:</label>
+    <select id="foodSelect"></select>
+    <label>Qty:</label>
+    <input type="number" id="quantity" value="1" min="0.1" step="0.1" />
+    <button onclick="addFood()">Add Food</button>
+  </div>
+
+  <hr>
+  <button onclick="getSummary()">Get Today's Nutrition Summary</button>
+
+  <div id="summary" style="margin-top: 20px;"></div>
+
+  <script>
+    const MEAL_URL = "http://localhost:8080/api/meal";
+    const FOOD_URL = "http://localhost:8080/api/food";
+    const MEAL_ITEM_URL = "http://localhost:8080/api/meal_item";
+
+    // --- Load all foods ---
+    async function loadFoods() {
+      const res = await fetch(`${FOOD_URL}/all`);
+      const foods = await res.json();
+      const sel = document.getElementById("foodSelect");
+      sel.innerHTML = foods.map(f => 
+        `<option value="${f.foodId}">${f.foodName} (${f.caloriesPerUnit} kcal)</option>`
+      ).join("");
+    }
+    loadFoods();
+
+    // --- Create a meal ---
+    async function createMeal() {
+      const userId = document.getElementById("userId").value;
+      const mealType = document.getElementById("mealType").value;
+      if (!userId) return alert("Please enter userId first!");
+
+      const url = `${MEAL_URL}/create?userId=${userId}&mealType=${mealType}`;
+      const response = await fetch(url, { method: "POST" });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ Created ${data.mealType} for today (Meal ID: ${data.mealId})`);
+        document.getElementById("mealId").value = data.mealId; // autofill
+      } else {
+        alert("❌ Failed to create meal (check console)");
+        console.log(await response.text());
+      }
+    }
+
+    // --- Add food to a meal ---
+    async function addFood() {
+      const mealId = document.getElementById("mealId").value;
+      const foodId = document.getElementById("foodSelect").value;
+      const qty = document.getElementById("quantity").value;
+      if (!mealId) return alert("Please enter meal ID first!");
+
+      const url = `${MEAL_ITEM_URL}/add?mealId=${mealId}&foodId=${foodId}&quantity=${qty}`;
+      const response = await fetch(url, { method: "POST" });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ Added food (id=${data.foodId}) x${data.quantity} to meal ${data.mealId}`);
+      } else {
+        alert("❌ Failed to add food");
+        console.log(await response.text());
+      }
+    }
+
+    // --- Get daily summary ---
+    async function getSummary() {
+      const userId = document.getElementById("userId").value;
+      if (!userId) return alert("Please enter userId first!");
+
+      const response = await fetch(`${MEAL_URL}/summary/${userId}`);
+      if (!response.ok) return alert("❌ Could not fetch summary");
+
+      const data = await response.json();
+      renderSummary(data);
+    }
+
+    function renderSummary(data) {
+      document.getElementById("summary").innerHTML = `
+        <h3>📊 Today's Nutrition Summary</h3>
+        <table>
+          <tr><th>Type</th><th>Target</th><th>Consumed</th><th>Remaining</th></tr>
+          <tr><td>Calories</td><td>${data.targetCalories}</td><td>${data.consumedCalories}</td><td>${data.remainingCalories}</td></tr>
+          <tr><td>Protein (g)</td><td>${data.targetProtein}</td><td>${data.consumedProtein}</td><td>${data.remainingProtein}</td></tr>
+          <tr><td>Carbs (g)</td><td>${data.targetCarb}</td><td>${data.consumedCarb}</td><td>${data.remainingCarb}</td></tr>
+          <tr><td>Fat (g)</td><td>${data.targetFat}</td><td>${data.consumedFat}</td><td>${data.remainingFat}</td></tr>
+        </table>
+      `;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Create Plan • Fitness Planner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* ===== Dev: set your page background here ===== */
+  :root{
+    --bg-image: url("https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2000&auto=format&fit=crop"); /* change me */
+    --panel:#0f172a; --ink:#0b1220; --text:#e2e8f0; --muted:#94a3b8;
+    --brand:#3b82f6; --accent:#22c55e; --danger:#ef4444; --border:rgba(148,163,184,.22);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial;
+    background:
+      linear-gradient( to bottom, rgba(2,6,23,.55), rgba(2,6,23,.92) 60%, rgba(2,6,23,.96) ),
+      var(--bg-image) center/cover no-repeat fixed;
+    color:var(--text); display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+
+  .wrap{
+    width:min(880px, 96vw);
+    display:grid; grid-template-columns: 1.05fr .95fr; gap:22px; align-items:stretch;
+  }
+  @media (max-width:900px){ .wrap{grid-template-columns:1fr} }
+
+  /* Left intro */
+  .intro{
+    border:1px solid var(--border); border-radius:20px;
+    background:linear-gradient(180deg, rgba(15,23,42,.9), rgba(9,15,28,.96));
+    padding:24px; box-shadow:0 18px 50px rgba(0,0,0,.35); backdrop-filter: blur(3px);
+  }
+  .intro h1{margin:0 0 6px; font-size:1.45rem}
+  .intro p{margin:0 0 12px; color:var(--muted); line-height:1.6}
+  .badgebar{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+  .chip{background:#0b1530; border:1px solid var(--border); padding:6px 10px; border-radius:999px; font-size:.9rem; color:#cfe1ff}
+
+  /* Right card (form) */
+  .card{
+    border:1px solid var(--border); border-radius:20px;
+    background:linear-gradient(180deg, rgba(15,23,42,.96), rgba(10,18,36,.98));
+    padding:22px; box-shadow:0 18px 50px rgba(0,0,0,.35);
+    display:flex; flex-direction:column; gap:8px; min-width:320px;
+  }
+  h2{margin:4px 0 6px; font-size:1.25rem}
+  .sub{color:var(--muted); font-size:.95rem; margin-bottom:8px}
+
+  label{display:block; color:#cbd5e1; font-size:.95rem; margin:10px 0 6px}
+  select,input{
+    width:100%; padding:12px; border-radius:12px; outline:none;
+    border:1px solid var(--border); background:#081326; color:var(--text);
+  }
+  select:focus,input:focus{box-shadow:0 0 0 2px rgba(59,130,246,.35)}
+
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  @media (max-width:520px){ .row{grid-template-columns:1fr} }
+
+  .metrics{
+    background:#0b1328; border:1px solid var(--border); border-radius:14px; padding:12px; margin-top:6px
+  }
+  .metrics .item{display:flex; justify-content:space-between; align-items:center; padding:6px 2px; border-bottom:1px dashed var(--border)}
+  .metrics .item:last-child{border-bottom:none}
+  .value{font-weight:800}
+
+  .btn{
+    width:100%; padding:12px 16px; border:0; border-radius:12px; cursor:pointer;
+    font-weight:700; letter-spacing:.25px; transition:transform .04s ease;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--brand); color:#06162e}
+  .muted{color:var(--muted); text-align:center; margin-top:6px}
+
+  .bar{display:flex; justify-content:space-between; align-items:center; gap:12px}
+  .tiny{font-size:.9rem; color:var(--muted)}
+  .link{color:#cfe1ff; text-decoration:none}
+
+  .msg{min-height:1.2em; text-align:center; color:#86efac; font-weight:700}
+  .err{min-height:1.2em; text-align:center; color:var(--danger); font-weight:700}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Intro / explainer -->
+    <section class="intro">
+      <h1>Create your plan</h1>
+      <p>Pick a goal, and we’ll auto-compute daily calories and macros.  
+         Your dashboard will track <em>Consumed</em>, <em>Burned</em>, and <em>Net Remaining</em> in real time.</p>
+      <div class="badgebar">
+        <span class="chip">Goal-based targets</span>
+        <span class="chip">Protein-first</span>
+        <span class="chip">Simple & fast</span>
+      </div>
+      <div class="bar" style="margin-top:16px">
+        <span class="tiny">You can edit your plan later anytime.</span>
+        <a class="link" href="/user_dashboard.html">Back to Dashboard</a>
+      </div>
+    </section>
+
+    <!-- Form -->
+    <section class="card">
+      <h2>Plan setup</h2>
+      <div class="sub">We’ll set calories & macros automatically from your goal.</div>
+
+      <form id="planForm" novalidate>
+        <label>Goal</label>
+        <select id="goal" required>
+          <option value="Lose Weight">Lose Weight</option>
+          <option value="Maintain" selected>Maintain</option>
+          <option value="Gain Muscle">Gain Muscle</option>
+        </select>
+
+        <div class="row">
+          <div>
+            <label>Start Date</label>
+            <input type="date" id="start_date" required />
+          </div>
+          <div id="rateWrap" style="display:none">
+            <label id="rateLabel">Weekly Rate</label>
+            <select id="rate"></select>
+          </div>
+        </div>
+
+        <!-- Computed targets -->
+        <div class="metrics">
+          <div class="item"><span>Daily Calories</span><span class="value"><span id="kcal">—</span> kcal</span></div>
+          <div class="item"><span>Protein</span><span class="value"><span id="p">—</span> g</span></div>
+          <div class="item"><span>Carbs</span><span class="value"><span id="c">—</span> g</span></div>
+          <div class="item"><span>Fat</span><span class="value"><span id="f">—</span> g</span></div>
+        </div>
+
+        <button class="btn btn-primary" type="submit" style="margin-top:12px">Create Plan</button>
+        <div id="msg" class="msg"></div>
+        <div id="err" class="err"></div>
+      </form>
+    </section>
+  </div>
+
+<script>
+  // --- Session & user fetch ---
+  const lsUser = JSON.parse(localStorage.getItem('user') || 'null');
+  if (!lsUser) location.href = '/login.html';
+  let user = lsUser;
+
+  // Ensure we have fresh height/weight in case LS is stale
+  (async () => {
+    try {
+      const r = await fetch(`/api/user/${user.userId}`, {cache:'no-store'});
+      if (r.ok) user = await r.json();
+    } catch {}
+  })();
+
+  // --- Elements ---
+  const els = {
+    goal:  document.getElementById('goal'),
+    start: document.getElementById('start_date'),
+    rateWrap: document.getElementById('rateWrap'),
+    rate:  document.getElementById('rate'),
+    kcal:  document.getElementById('kcal'),
+    p:     document.getElementById('p'),
+    c:     document.getElementById('c'),
+    f:     document.getElementById('f'),
+    msg:   document.getElementById('msg'),
+    err:   document.getElementById('err'),
+  };
+
+  // Default start date = today
+  els.start.value = new Date().toISOString().slice(0,10);
+
+  // Energy per kg body mass change
+  const KCAL_PER_KG = 7700;
+
+  function healthyRates(goal){
+    if(goal === 'Lose Weight'){
+      return [
+        {v: 0.25, label: '0.25 kg/week (gentle)'},
+        {v: 0.50, label: '0.50 kg/week (standard)'},
+        {v: 0.75, label: '0.75 kg/week (aggressive)'}
+      ];
+    }
+    if(goal === 'Gain Muscle'){
+      return [
+        {v: 0.125, label: '0.125 kg/week (very clean)'},
+        {v: 0.25,  label: '0.25 kg/week (moderate)'}
+      ];
+    }
+    return [];
+  }
+
+  function setRateOptions(){
+    const goal = els.goal.value;
+    const options = healthyRates(goal);
+    els.rate.innerHTML = '';
+    if(options.length){
+      els.rateWrap.style.display = '';
+      options.forEach(r => {
+        const o = document.createElement('option');
+        o.value = r.v; o.textContent = r.label;
+        els.rate.appendChild(o);
+      });
+    } else {
+      els.rateWrap.style.display = 'none';
+    }
+  }
+
+  function computeTargets(){
+    const w = Number((user && user.weightKg) || 0);
+    const goal = els.goal.value;
+
+    if (!w){
+      els.err.textContent = 'Please set your weight in profile to compute precise targets.';
+      els.kcal.textContent = els.p.textContent = els.c.textContent = els.f.textContent = '—';
+      els._last = null;
+      return;
+    }
+    els.err.textContent = '';
+
+    // 1) Baseline maintenance (simple: 22 kcal/kg)
+    const maintenance = 22 * w;
+
+    // 2) Adjust by weekly rate for Lose/Gain
+    let adjust = 0;
+    if (goal !== 'Maintain'){
+      const rate = Number(els.rate.value || 0);
+      adjust = (rate * KCAL_PER_KG) / 7;       // kcal/day
+      if (goal === 'Lose Weight') adjust = -adjust;
+    }
+    const calories = Math.round(maintenance + adjust);
+
+    // 3) Macro split by goal (protein & fat per kg; carbs fill)
+    let pPerKg = 1.6, fPerKg = 0.9;
+    if (goal === 'Lose Weight'){ pPerKg = 1.8; fPerKg = 0.8; }
+    if (goal === 'Gain Muscle'){ pPerKg = 2.0; fPerKg = 1.0; }
+
+    const protein_g = Math.round(pPerKg * w);
+    const fat_g     = Math.round(fPerKg * w);
+    const carbs_g   = Math.max(0, Math.round((calories - (protein_g*4 + fat_g*9)) / 4));
+
+    els.kcal.textContent = calories;
+    els.p.textContent = protein_g;
+    els.c.textContent = carbs_g;
+    els.f.textContent = fat_g;
+
+    els._last = { calories, protein_g, carbs_g, fat_g };
+  }
+
+  els.goal.addEventListener('change', () => { setRateOptions(); computeTargets(); });
+  els.rate.addEventListener('change', computeTargets);
+
+  setRateOptions();
+  computeTargets();
+
+  // --- Submit plan ---
+  document.getElementById('planForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    els.msg.textContent = '';
+    els.err.textContent = '';
+
+    if (!els._last){
+      els.err.textContent = 'Targets not computed. Check your profile weight.';
+      return;
+    }
+
+    const payload = {
+      userId: user.userId,
+      goalType: els.goal.value,
+      startDate: els.start.value,
+      dailyCalorieTarget: els._last.calories,
+      proteinGTarget: els._last.protein_g,
+      carbGTarget: els._last.carbs_g,
+      fatGTarget: els._last.fat_g
+    };
+
+    try{
+      const res = await fetch('/api/plan/create', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (res.ok){
+        els.msg.textContent = '✅ Plan created! Redirecting…';
+        setTimeout(()=>location.href='/user_dashboard.html', 900);
+      } else {
+        els.err.textContent = (await res.text()) || 'Failed to create plan.';
+      }
+    }catch(err){
+      console.error(err);
+      els.err.textContent = 'Network error — please try again.';
+    }
+  });
+</script>
+</body>
+</html>
