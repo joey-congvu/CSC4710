@@ -17,9 +17,10 @@
     *{box-sizing:border-box}
     body{
       margin:0; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial; color:var(--text);
-      background:
-        var(--bg-image) center/cover no-repeat fixed,
-        var(--bg-base);
+background:
+  var(--bg-image) center/cover no-repeat fixed,
+  var(--bg-base);
+
     }
 
     header{
@@ -86,8 +87,6 @@
     <h1>Fitness & Nutrition Planner</h1>
     <div style="display:flex;gap:10px;align-items:center">
       <span id="userBadge" class="pill">User</span>
-      <!-- NEW: View Progress button -->
-      <button class="btn btn-outline" onclick="goProgress()">View Progress</button>
       <button class="logout" onclick="logout()">Logout</button>
     </div>
   </header>
@@ -127,7 +126,7 @@
           <h2>Today’s Entries</h2>
           <div style="margin-top:8px">
             <div class="small" style="margin-bottom:6px;color:#cbd5e1">Meals (gain)</div>
-            <!-- Clear All button for Meals -->
+            <!-- NEW: Clear All button for Meals -->
             <div style="text-align:right;margin-bottom:6px;">
               <button class="btn btn-outline" style="padding:6px 10px;font-size:12px" onclick="clearTodayMeals()">🗑 Clear All</button>
             </div>
@@ -141,8 +140,8 @@
             <div class="small" style="margin-bottom:6px;color:#cbd5e1">Workouts (burn)</div>
             <table id="workoutTable">
               <div style="text-align:right;margin-bottom:6px;">
-                <button class="btn btn-outline" style="padding:6px 10px;font-size:12px" onclick="clearTodayMeals()">🗑 Clear All</button>
-              </div>
+              <button class="btn btn-outline" style="padding:6px 10px;font-size:12px" onclick="clearTodayMeals()">🗑 Clear All</button>
+            </div>
               <thead><tr><th>Name</th><th style="width:140px">Calories</th></tr></thead>
               <tbody><tr><td class="small">No items yet</td><td></td></tr></tbody>
             </table>
@@ -165,8 +164,6 @@
           <div><div class="title">Fat (g)</div><div id="k_f">—</div></div>
           <div><div class="title">Plan kcal</div><div id="k_plan">—</div></div>
         </div>
-        <!-- NEW: coaching tips line -->
-        <div id="coachTips" style="margin-top:12px;font-size:13px;color:#e2e8f0;line-height:1.4;"></div>
       </section>
     </div>
   </div>
@@ -226,12 +223,7 @@
     // --- Session ---
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     if (!user) location.href = '/login.html';
-    document.getElementById('userBadge').textContent = `Hi, ${user.name || 'User'}`;
-
-    // NEW: go to progress page
-    function goProgress(){
-      location.href = '/progress.html';
-    }
+   document.getElementById('userBadge').textContent = `Hi, ${user.name || 'User'}`;
 
     const PLAN_URL          = uid => `/api/plan/user/${uid}`;
     const SUMMARY_URL       = uid => `/api/summary/today/${uid}`;
@@ -302,139 +294,6 @@
       }catch(e){ console.error(e); }
     }
 
-    // ----- Coaching logic: calories + macros -----
-    function updateCoaching(d){
-      const tipsEl = document.getElementById('coachTips');
-      if (!tipsEl || !d) return;
-
-      const target   = Number(d.targetCalories       ?? 0);
-      const consumed = Number(d.consumedCalories     ?? 0);
-      const burned   = Number(d.burnedCalories       ?? 0);
-      const netRem   = Number(d.netRemainingCalories ?? 0); // >0 = under target, <0 = over
-
-      const cP = Number(d.consumedProtein ?? 0);
-      const tP = Number(d.targetProtein   ?? 0);
-      const cC = Number(d.consumedCarb    ?? 0);
-      const tC = Number(d.targetCarb      ?? 0);
-      const cF = Number(d.consumedFat     ?? 0);
-      const tF = Number(d.targetFat       ?? 0);
-
-      const goalRaw = (d.goalType || d.goal || "").toString().toLowerCase();
-      const isCut   = goalRaw.includes('lose') || goalRaw.includes('cut');
-      const isBulk  = goalRaw.includes('gain') || goalRaw.includes('bulk');
-
-      const lines = [];
-
-      // 1) Consumed vs burned → color + simple suggestion
-      const diffCB = consumed - burned; // >0: ate more than burned
-      const consumedEl = document.getElementById('k_consumed');
-      if (consumedEl){
-        if (diffCB > 50){
-          consumedEl.style.color = 'var(--danger)'; // more intake than burn
-        } else if (diffCB < -50){
-          consumedEl.style.color = 'var(--accent-2)'; // burned more than intake
-        } else {
-          consumedEl.style.color = 'var(--text)';
-        }
-      }
-
-      // 2) Calories vs plan (using netRemainingCalories)
-      if (target > 0){
-        const absRem = Math.abs(netRem);
-
-        if (absRem < target * 0.05){
-          lines.push("Calories are very close to today's target — solid control.");
-        } else if (netRem > 0){
-          if (isCut){
-            lines.push(`You're about ${netRem.toFixed(0)} kcal under plan — good for fat loss as long as energy feels okay.`);
-          } else if (isBulk){
-            lines.push(`You're about ${netRem.toFixed(0)} kcal under your gain target — consider another snack or meal.`);
-          } else {
-            lines.push(`You're about ${netRem.toFixed(0)} kcal below today's target — a small snack could top up your energy.`);
-          }
-        } else if (netRem < 0){
-          const over = Math.abs(netRem).toFixed(0);
-          if (isCut){
-            lines.push(`You've gone about ${over} kcal over target. Tighten portions or add a bit of movement to keep loss on track.`);
-          } else if (isBulk){
-            lines.push(`You're about ${over} kcal above your gain target. That's fine if weight isn't climbing too fast.`);
-          } else {
-            lines.push(`You're about ${over} kcal above today's target. If this happens often, it may slowly increase weight.`);
-          }
-        }
-      }
-
-      // 3) Protein coaching
-      if (tP > 0){
-        const rP = cP / tP;
-        if (rP < 0.6){
-          lines.push("Protein is low — add a solid protein source (chicken, fish, tofu, eggs, Greek yogurt) to your next meal.");
-        } else if (rP < 0.9){
-          lines.push("You're close to your protein goal. One more protein snack would help recovery and satiety.");
-        } else if (rP > 1.2){
-          lines.push("You've already passed your protein target — that's usually okay, just keep an eye on total calories.");
-        }
-      }
-
-      // 4) Carb coaching
-      if (tC > 0){
-        const rC = cC / tC;
-        if (rC > 1.2){
-          if (isCut){
-            lines.push("Carbs are higher than plan for a fat-loss day. Trim rice/bread/snacks a bit in later meals.");
-          }else{
-            lines.push("Carbs are higher than planned — good around training, but dial back snacky carbs if energy is low.");
-          }
-        } else if (rC < 0.6){
-          lines.push("Carbs are quite low. If you feel tired or have training planned, add some quality carbs (rice, oats, fruit).");
-        }
-      }
-
-      // 5) Fat coaching
-      if (tF > 0){
-        const rF = cF / tF;
-        if (rF > 1.2){
-          lines.push("Fat intake is on the high side — go lighter on oils, nuts, and fried foods for the rest of the day.");
-        } else if (rF < 0.5){
-          lines.push("Fats are pretty low — a bit of healthy fat (olive oil, avocado, nuts) can help hormones and satiety.");
-        }
-      }
-
-      // ---- Highlight metrics above target ----
-      const col = sel => document.getElementById(sel);
-
-      if (Number(d.consumedCalories) > Number(d.targetCalories))
-        col("k_consumed").style.color = "var(--danger)";
-      else
-        col("k_consumed").style.color = "var(--text)";
-
-      if (Number(d.burnedCalories) > Number(d.targetCalories))
-        col("k_burned").style.color = "var(--danger)";
-      else
-        col("k_burned").style.color = "var(--text)";
-
-      if (Number(d.consumedProtein) > Number(d.targetProtein))
-        col("k_p").style.color = "var(--danger)";
-      else
-        col("k_p").style.color = "var(--text)";
-
-      if (Number(d.consumedCarb) > Number(d.targetCarb))
-        col("k_c").style.color = "var(--danger)";
-      else
-        col("k_c").style.color = "var(--text)";
-
-      if (Number(d.consumedFat) > Number(d.targetFat))
-        col("k_f").style.color = "var(--danger)";
-      else
-        col("k_f").style.color = "var(--text)";
-
-      if (!lines.length){
-        tipsEl.textContent = "You're tracking well today — keep following the plan.";
-      } else {
-        tipsEl.textContent = lines.join(' ');
-      }
-    }
-
     // ----- KPI Summary -----
     async function loadSummary(){
       try{
@@ -448,9 +307,6 @@
         document.getElementById('k_p').textContent        = `${fmt(d.consumedProtein)} / ${fmt(d.targetProtein)}`;
         document.getElementById('k_c').textContent        = `${fmt(d.consumedCarb)} / ${fmt(d.targetCarb)}`;
         document.getElementById('k_f').textContent        = `${fmt(d.consumedFat)} / ${fmt(d.targetFat)}`;
-
-        // NEW: smart coaching tips
-        updateCoaching(d);
       }catch(e){ console.error(e); }
     }
 
@@ -550,7 +406,7 @@
       await Promise.all([loadSummary(), loadTodayEntries()]);
     }
 
-    // ----- Clear today's meals -----
+    // ----- NEW: Clear today's meals -----
     async function clearTodayMeals(){
       if (!confirm("Delete all meals logged today?")) return;
       try{
@@ -574,6 +430,7 @@
       await loadSummary();
       await loadTodayEntries();
     })();
+    
   </script>
 </body>
 </html>
